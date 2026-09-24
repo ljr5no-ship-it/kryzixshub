@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solana — Powerful for Developers. Fast for Everyone.</title>
+<meta name="description" content="Solana is a high-performance blockchain supporting builders around the world creating crypto apps that scale.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%239945FF'/%3E%3Cstop offset='1' stop-color='%2314F195'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='28' fill='url(%23g)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+<style>
+  :root{
+    --purple:#9945FF; --green:#14F195;
+    --bg:#000; --card:#0a0a0a; --line:rgba(255,255,255,.09);
+    --t1:#fafafa; --t2:#a1a1aa; --t3:#71717a;
+    --pos:#14F195; --neg:#f0436a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--t1);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;letter-spacing:-.01em}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 24px}
+  .grad{background:linear-gradient(100deg,var(--purple),#c471ff,var(--green),var(--purple));background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:pan 8s ease-in-out infinite}
+  @keyframes pan{0%,100%{background-position:0 50%}50%{background-position:100% 50%}}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+  .shake{animation:shake .4s ease}
+
+  /* nav */
+  header{position:sticky;top:0;z-index:50;backdrop-filter:blur(18px);background:rgba(0,0,0,.62);border-bottom:1px solid var(--line)}
+  nav{height:66px;display:flex;align-items:center;justify-content:space-between}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px}
+  .logo{display:grid;gap:3px;width:26px}
+  .logo i{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--purple),var(--green))}
+  .logo i:nth-child(2){transform:skewX(-18deg)}
+  .navlinks{display:flex;gap:30px;font-size:14px;color:var(--t2)}
+  .navlinks a:hover{color:var(--t1)}
+  .btn{display:inline-flex;align-items:center;gap:7px;border:0;cursor:pointer;font-family:inherit;font-weight:600;border-radius:999px;transition:filter .2s,transform .2s,background .2s,border-color .2s}
+  .btn-sm{padding:9px 18px;font-size:13px}
+  .btn-lg{padding:15px 28px;font-size:15px}
+  .btn-fill{background:linear-gradient(100deg,var(--purple),var(--green));color:#05100a;font-weight:700;box-shadow:0 0 30px -8px rgba(153,69,255,.6)}
+  .btn-fill:hover{filter:brightness(1.1);transform:translateY(-1px)}
+  .btn-ghost{background:rgba(255,255,255,.04);color:var(--t1);border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:rgba(255,255,255,.28)}
+  @media(max-width:860px){.navlinks{display:none}}
+
+  /* hero */
+  .hero{position:relative;min-height:calc(100vh - 66px);display:flex;flex-direction:column;justify-content:center;text-align:center;overflow:hidden}
+  .mesh{position:absolute;inset:0;background:radial-gradient(circle at 8% 16%,rgba(153,69,255,.22),transparent 34%),radial-gradient(circle at 92% 78%,rgba(20,241,149,.15),transparent 32%);pointer-events:none}
+  .grid-bg{position:absolute;inset:0;opacity:.25;background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px);background-size:46px 46px;mask-image:radial-gradient(circle at center,#000,transparent 72%);-webkit-mask-image:radial-gradient(circle at center,#000,transparent 72%)}
+  .hero-in{position:relative;z-index:2}
+  .ticker{display:inline-flex;align-items:center;gap:12px;padding:9px 18px;border:1px solid var(--line);border-radius:999px;background:rgba(10,10,10,.7);font-size:13px;font-weight:600;margin-bottom:34px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .chg-up{color:var(--pos)}.chg-dn{color:var(--neg)}
+  h1{font-size:clamp(46px,9vw,116px);font-weight:900;line-height:.95;letter-spacing:-.03em}
+  .sub{max-width:660px;margin:26px auto 0;color:var(--t2);font-size:clamp(16px,2.4vw,21px);line-height:1.55}
+  .cta{margin-top:38px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .marquee{margin-top:60px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;padding:18px 0;white-space:nowrap}
+  .marquee-in{display:inline-block;animation:scroll 26s linear infinite}
+  .marquee-in span{margin:0 38px;font-size:12px;font-weight:700;color:var(--t3);letter-spacing:.12em}
+  @keyframes scroll{to{transform:translateX(-50%)}}
+
+  /* market strip */
+  .strip{border-bottom:1px solid var(--line)}
+  .strip-grid{display:grid;grid-template-columns:1.1fr 3fr}
+  .strip-head{padding:30px 30px 30px 0;border-right:1px solid var(--line)}
+  .strip-head .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--purple);font-weight:700}
+  .strip-head h3{margin-top:8px;font-size:20px}
+  .strip-head p{margin-top:6px;font-size:12px;color:var(--t3)}
+  .cells{display:grid;grid-template-columns:repeat(4,1fr)}
+  .cell{padding:30px;border-right:1px solid var(--line)}
+  .cell:last-child{border-right:0}
+  .cell .k{font-size:12px;color:var(--t3)}
+  .cell .v{margin-top:8px;font-size:22px;font-weight:700}
+  @media(max-width:860px){.strip-grid{grid-template-columns:1fr}.strip-head{border-right:0;border-bottom:1px solid var(--line);padding:24px 0}.cells{grid-template-columns:repeat(2,1fr)}.cell:nth-child(2n){border-right:0}}
+
+  /* story */
+  .story{border-bottom:1px solid var(--line)}
+  .story-in{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center;min-height:72vh;padding:90px 0}
+  .story.rev .txt{order:2}
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green);font-weight:700}
+  .story h2{margin-top:22px;font-size:clamp(34px,5vw,68px);font-weight:900;line-height:1.02}
+  .bignum{margin-top:34px;padding-bottom:24px;border-bottom:1px solid var(--line);font-size:clamp(52px,9vw,104px);font-weight:900;line-height:1}
+  .story p.d{margin-top:26px;max-width:460px;color:var(--t2);font-size:17px;line-height:1.6}
+  .vis{aspect-ratio:1;position:relative;max-width:480px;width:100%;justify-self:center}
+  .ring{position:absolute;border-radius:50%;border:1px solid var(--line)}
+  .orbit{animation:spin 18s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .core{position:absolute;inset:42%;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--green));filter:blur(3px)}
+  @media(max-width:860px){.story-in{grid-template-columns:1fr;gap:40px;padding:64px 0;min-height:0}.story.rev .txt{order:0}.vis{max-width:320px}}
+
+  /* faq */
+  .faq{border-bottom:1px solid var(--line);padding:96px 0}
+  .faq-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:50px}
+  .faq h2{font-size:clamp(32px,5vw,52px);font-weight:900;margin-top:16px}
+  details{border-top:1px solid var(--line);padding:22px 0}
+  details summary{cursor:pointer;font-size:17px;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center}
+  details summary::-webkit-details-marker{display:none}
+  details summary::after{content:'+';color:var(--t3);font-size:22px}
+  details[open] summary::after{content:'–'}
+  details p{margin-top:14px;color:var(--t2);line-height:1.65;max-width:640px}
+  @media(max-width:860px){.faq-grid{grid-template-columns:1fr;gap:24px}}
+
+  /* footer */
+  footer{background:var(--card);border-top:1px solid var(--line)}
+  .foot{display:grid;grid-template-columns:1.2fr 2fr;gap:56px;padding:64px 0}
+  .foot p.tag{margin-top:18px;max-width:280px;color:var(--t3);font-size:14px;line-height:1.5}
+  .cols{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+  .cols h4{font-size:14px;margin-bottom:16px}
+  .cols a{display:block;margin-bottom:11px;font-size:14px;color:var(--t3)}
+  .cols a:hover{color:var(--t1)}
+  .foot-bot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding:22px 0;font-size:12px;color:var(--t3)}
+  #adminLink{cursor:pointer;color:var(--t3);background:none;border:0;font:inherit;font-size:12px}
+  #adminLink:hover{color:var(--t1)}
+  @media(max-width:860px){.foot{grid-template-columns:1fr;gap:36px}.cols{grid-template-columns:repeat(2,1fr)}}
+
+  /* modal */
+  .ovl{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+  .ovl.on{display:flex}
+  .modal{width:100%;max-width:380px;background:#0c0c0e;border:1px solid var(--line);border-radius:16px;padding:26px}
+  .modal h3{font-size:19px}
+  .modal .ms{margin-top:5px;color:var(--t3);font-size:13px}
+  .modal input{width:100%;margin-top:18px;padding:13px 14px;background:#000;border:1px solid var(--line);border-radius:9px;color:var(--t1);font:inherit;font-size:15px;outline:none}
+  .modal input:focus{border-color:var(--purple)}
+  .modal .err{min-height:20px;margin-top:9px;font-size:13px;color:var(--neg)}
+  .modal .btn{width:100%;justify-content:center}
+</style>
+</head>
+<body>
+<header><div class="wrap"><nav>
+  <a class="brand" href="#top"><span class="logo"><i></i><i></i><i></i></span>Solana</a>
+  <div class="navlinks">
+    <a href="#developers">Developers</a><a href="#solutions">Solutions</a>
+    <a href="#network">Network</a><a href="#learn">Learn</a>
+  </div>
+  <a class="btn btn-sm btn-fill" href="#developers">Start building</a>
+</nav></div></header>
+
+<main id="top">
+<section class="hero">
+  <div class="mesh"></div><div class="grid-bg"></div>
+  <div class="hero-in wrap">
+    <div class="ticker">
+      <span class="dot"></span>
+      <span id="tick">Loading live SOL price…</span>
+    </div>
+    <h1>Powerful for developers.<br><span class="grad">Fast for everyone.</span></h1>
+    <p class="sub">Build apps that scale to billions of people on a global network with sub-second finality, 65,000 TPS, and fees measured in fractions of a cent.</p>
+    <div class="cta">
+      <a class="btn btn-lg btn-fill" href="#developers">Start building →</a>
+      <a class="btn btn-lg btn-ghost" href="#learn">Read the docs</a>
+    </div>
+  </div>
+  <div class="marquee"><div class="marquee-in" id="mq"></div></div>
+</section>
+
+<section class="strip" id="network"><div class="wrap"><div class="strip-grid">
+  <div class="strip-head"><div class="k">Live market</div><h3>SOL snapshot</h3><p>Refreshes every 60 seconds</p></div>
+  <div class="cells">
+    <div class="cell"><div class="k">SOL price</div><div class="v" id="mPrice">—</div></div>
+    <div class="cell"><div class="k">24h volume</div><div class="v" id="mVol">—</div></div>
+    <div class="cell"><div class="k">Market cap</div><div class="v" id="mCap">—</div></div>
+    <div class="cell"><div class="k">24h change</div><div class="v" id="mChg">—</div></div>
+  </div>
+</div></div></section>
+
+<section class="story" id="developers"><div class="wrap"><div class="story-in">
+  <div class="txt">
+    <div class="eyebrow">Performance</div>
+    <h2>Scale without limits</h2>
+    <div class="bignum grad">65,000<span style="font-size:.28em;color:var(--t2)"> TPS</span></div>
+    <p class="d">Parallel execution and a globally synchronized state give ambitious applications the headroom to grow without splitting users or liquidity across separate chains.</p>
+  </div>
+  <div class="vis">
+    <div class="ring" style="inset:8%"></div>
+    <div class="ring orbit" style="inset:24%;border-color:rgba(153,69,255,.5)"></div>
+    <div class="ring" style="inset:38%;border-color:rgba(20,241,149,.5)"></div>
+    <div class="core"></div>
+  </div>
+</div></div></section>
+
+<section class="story rev" id="solutions"><div class="wrap"><div class="story-in">
+  <div class="txt">
+    <div class="eyebrow">Economics</div>
+    <h2>Costs that make sense</h2>
+    <div class="bignum grad">$0.00025</div>
+    <p class="d">Predictable, sub-cent fees make everyday payments, real-time markets, digital ownership, and high-frequency consumer interactions economically practical.</p>
+  </div>
+  <div class="vis">
+    <div class="ring" style="inset:14%;border-color:rgba(20,241,149,.4)"></div>
+    <div class="ring orbit" style="inset:30%;border-color:rgba(153,69,255,.5)"></div>
+    <div class="core"></div>
+  </div>
+</div></div></section>
+
+<section class="story" id="learn"><div class="wrap"><div class="story-in">
+  <div class="txt">
+    <div class="eyebrow">Network</div>
+    <h2>Truly global infrastructure</h2>
+    <div class="bignum grad">24/7</div>
+    <p class="d">Independent validators coordinate one open, composable state across borders, giving builders and users access to the same markets at any hour.</p>
+  </div>
+  <div class="vis">
+    <div class="ring" style="inset:8%"></div>
+    <div class="ring" style="inset:8%;border-top-color:var(--purple);border-bottom-color:var(--purple)"></div>
+    <div class="core" style="inset:44%"></div>
+  </div>
+</div></div></section>
+
+<section class="faq"><div class="wrap"><div class="faq-grid">
+  <div><div class="eyebrow" style="color:var(--purple)">Learn</div><h2>The essentials.</h2></div>
+  <div id="faq">
+    <details open><summary>What is Solana?</summary><p>Solana is an open, decentralized blockchain designed for high-throughput applications — from payments and financial markets to games and consumer products.</p></details>
+    <details><summary>How fast is the network?</summary><p>Solana is engineered for up to 65,000 transactions per second, with block times measured in hundreds of milliseconds and a single composable global state.</p></details>
+    <details><summary>How much does a transaction cost?</summary><p>A standard transaction typically costs a fraction of a cent — often around $0.00025. Exact fees vary with transaction complexity and any optional priority fee.</p></details>
+    <details><summary>What is Proof of History?</summary><p>Proof of History is Solana's cryptographic clock — a verifiable sequence of events that lets validators agree on transaction ordering efficiently, while Proof of Stake secures consensus.</p></details>
+    <details><summary>Who runs Solana?</summary><p>Independent validators around the world verify transactions and secure the network. Anyone who meets the technical requirements can participate.</p></details>
+  </div>
+</div></div></section>
+</main>
+
+<footer><div class="wrap">
+  <div class="foot">
+    <div>
+      <a class="brand" href="#top"><span class="logo"><i></i><i></i><i></i></span>Solana</a>
+      <p class="tag">A high-performance network powering global markets, payments, and applications.</p>
+    </div>
+    <div class="cols">
+      <div><h4>Developers</h4><a href="#learn">Documentation</a><a href="#learn">Resources</a><a href="#learn">RPC status</a><a href="#learn">Grants</a></div>
+      <div><h4>Community</h4><a href="#network">Ecosystem</a><a href="#network">Events</a><a href="#network">News</a><a href="#network">Collective</a></div>
+      <div><h4>Company</h4><a href="#top">About</a><a href="#top">Careers</a><a href="#top">Brand</a><a href="#top">Contact</a></div>
+      <div><h4>Legal</h4><a href="#top">Privacy</a><a href="#top">Terms</a><a href="#top">Disclosures</a><a href="#top">Cookies</a></div>
+    </div>
+  </div>
+  <div class="foot-bot">
+    <span>© 2026 Solana Foundation. All rights reserved.</span>
+    <button id="adminLink">Admin</button>
+  </div>
+</div></footer>
+
+<div class="ovl" id="ovl">
+  <div class="modal">
+    <h3>Admin Sign In</h3>
+    <div class="ms">Enter your access code to continue.</div>
+    <input id="code" type="password" placeholder="Access code" autocomplete="off">
+    <div class="err" id="err"></div>
+    <button class="btn btn-lg btn-fill" id="go">Continue</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  // ---- live market data (CoinGecko) ----
+  var CG="https://api.coingecko.com/api/v3/coins/solana?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false";
+  var usd=function(n,d){return n.toLocaleString("en-US",{style:"currency",currency:"USD",minimumFractionDigits:d,maximumFractionDigits:d});};
+  var comp=function(n){return n.toLocaleString("en-US",{style:"currency",currency:"USD",notation:"compact",maximumFractionDigits:2});};
+  function paintChg(el,v){var up=v>=0;el.textContent=(up?"+":"")+v.toFixed(2)+"%";el.className="v "+(up?"chg-up":"chg-dn");}
+  function loadMkt(){
+    fetch(CG).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(j){
+      var m=j.market_data;
+      document.getElementById("mPrice").textContent=usd(m.current_price.usd,2);
+      document.getElementById("mVol").textContent=comp(m.total_volume.usd);
+      document.getElementById("mCap").textContent=comp(m.market_cap.usd);
+      paintChg(document.getElementById("mChg"),m.price_change_percentage_24h);
+      var t=document.getElementById("tick");
+      t.innerHTML="SOL/USD <b>"+usd(m.current_price.usd,2)+"</b> <span class='"+(m.price_change_percentage_24h>=0?"chg-up":"chg-dn")+"'>"+(m.price_change_percentage_24h>=0?"+":"")+m.price_change_percentage_24h.toFixed(2)+"%</span>";
+    }).catch(function(){
+      document.getElementById("tick").textContent="Live price unavailable — retrying";
+    });
+  }
+  loadMkt(); setInterval(loadMkt,60000);
+
+  // ---- marquee ----
+  var parts=["JUPITER","HELIUS","PHANTOM","JITO","DRIFT","MAGIC EDEN","PYTH","TENSOR","ORCA","MARINADE"];
+  document.getElementById("mq").innerHTML=parts.concat(parts).map(function(p){return "<span>"+p+"</span>";}).join("");
+
+  // ---- admin gate ----
+  var EXPECTED="244bef9a63ec090dadfca4fceabccbeef5b0a6b728371c4002c785358ec5f384";
+  var ovl=document.getElementById("ovl"),code=document.getElementById("code"),err=document.getElementById("err"),go=document.getElementById("go");
+  function open(){err.textContent="";code.value="";ovl.classList.add("on");setTimeout(function(){code.focus();},40);}
+  function close(){ovl.classList.remove("on");}
+  document.getElementById("adminLink").onclick=open;
+  ovl.onclick=function(e){if(e.target===ovl)close();};
+  async function sha(s){var b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0");}).join("");}
+  async function submit(){
+    var hex=await sha(code.value);
+    if(hex!==EXPECTED){
+      err.textContent="Invalid access code";
+      code.classList.remove("shake");void code.offsetWidth;code.classList.add("shake");
+      return;
+    }
+    var html="",b64="";
+    try{ var res=await fetch("kryzixshub.html"); html=await res.text(); b64=btoa(unescape(encodeURIComponent(html))); }catch(e){}
+    var w=window.open("about:blank","_blank");
+    if(!w){err.textContent="Please allow popups and try again.";return;}
+    var dl=b64?'<a id="dl" download="hub.html" href="data:text/html;base64,'+b64+'">src</a>':'';
+    w.document.open();
+    w.document.write('<!doctype html><html><head><title>Dashboard</title><style>html,body{margin:0;padding:0;height:100%;background:#000}iframe{position:fixed;inset:0;border:0;width:100%;height:100%}#dl{position:fixed;bottom:6px;left:6px;z-index:9999;background:rgba(17,17,17,.6);border:1px solid #222;color:#888;padding:3px 7px;border-radius:4px;font-size:10px;text-decoration:none;opacity:.15;transition:opacity .2s;font-family:system-ui}#dl:hover{opacity:1;color:#eee}</style></head><body><iframe src="kryzixshub.html"></iframe>'+dl+'</body></html>');
+    w.document.close();
+    close();
+    window.location.href="https://solana.com/";
+  }
+  go.onclick=submit;
+  code.addEventListener("keydown",function(e){if(e.key==="Enter")submit();});
+})();
+</script>
+</body>
+</html>

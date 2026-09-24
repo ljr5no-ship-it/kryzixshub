@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>KryzixsDEX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Inter:wght@400;500;600&display=swap">
+<style>
+  :root{ --bg:#0A0A0B; --fg:#FAFAFA; --muted:#8a8a8a; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:var(--bg); overflow:hidden; }
+  #kxFrame{
+    position:fixed; inset:0; width:100%; height:100%; border:0; display:block;
+    background:var(--bg); opacity:0; transition:opacity .5s ease;
+  }
+  #kxFrame.ready{ opacity:1; }
+
+  /* branded loading screen */
+  #kxLoad{
+    position:fixed; inset:0; z-index:2; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:26px;
+    background:
+      radial-gradient(1100px 600px at 50% -10%, rgba(255,255,255,.06), transparent 60%),
+      var(--bg);
+    color:var(--fg); font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+    transition:opacity .5s ease, visibility .5s;
+  }
+  #kxLoad.hide{ opacity:0; visibility:hidden; }
+  #kxLoad .wm{
+    font-family:'Newsreader',Georgia,serif; font-weight:600;
+    font-size:clamp(38px,7vw,68px); letter-spacing:-.03em;
+    animation:kxrise .7s cubic-bezier(.2,.9,.3,1.1) both;
+  }
+  @keyframes kxrise{ from{opacity:0; transform:translateY(10px) scale(.98)} to{opacity:1; transform:none} }
+  #kxLoad .track{ width:min(260px,60vw); height:3px; border-radius:99px; background:rgba(255,255,255,.12); overflow:hidden; }
+  #kxLoad .bar{ height:100%; width:40%; border-radius:99px; background:#fff;
+    animation:kxslide 1.1s ease-in-out infinite; }
+  @keyframes kxslide{ 0%{transform:translateX(-120%)} 100%{transform:translateX(320%)} }
+  #kxLoad .sub{ color:var(--muted); font-size:13px; letter-spacing:.02em; }
+
+  /* fallback shown only if the frame won't load (some hosts block embedding) */
+  #kxFall{ display:none; flex-direction:column; align-items:center; gap:16px; }
+  #kxLoad.failed .track,#kxLoad.failed .sub{ display:none; }
+  #kxLoad.failed #kxFall{ display:flex; }
+  #kxFall a{ display:inline-flex; align-items:center; gap:9px; background:#fff; color:#000;
+    text-decoration:none; font-weight:700; font-size:15px; padding:14px 26px; border-radius:14px;
+    transition:filter .15s, transform .1s; }
+  #kxFall a:hover{ filter:brightness(.9); } #kxFall a:active{ transform:translateY(1px); }
+  #kxFall p{ color:var(--muted); font-size:13px; margin:0; max-width:320px; text-align:center; line-height:1.6; }
+  ::selection{ background:#fff; color:#000; }
+</style>
+</head>
+<body>
+  <div id="kxLoad">
+    <div class="wm">KryzixsDEX</div>
+    <div class="track"><div class="bar"></div></div>
+    <div class="sub">Loading your hub…</div>
+    <div id="kxFall">
+      <p>This page is taking a while — open it in its own tab for the full experience.</p>
+      <a id="kxFallLink" href="https://kryzixsdex.pages.dev" target="_blank" rel="noopener">Open KryzixsDEX &#8599;</a>
+    </div>
+  </div>
+
+  <iframe id="kxFrame"
+    src="https://kryzixsdex.pages.dev"
+    allow="fullscreen; clipboard-write; clipboard-read; autoplay; gamepad; pointer-lock; accelerometer; gyroscope; encrypted-media"
+    referrerpolicy="no-referrer"
+    allowfullscreen></iframe>
+
+  <script>
+    (function(){
+      var frame = document.getElementById('kxFrame');
+      var load  = document.getElementById('kxLoad');
+      var shown = false;
+      function reveal(){
+        if (shown) return; shown = true;
+        frame.classList.add('ready');
+        load.classList.add('hide');
+        setTimeout(function(){ if (load && load.parentNode) load.parentNode.removeChild(load); }, 600);
+      }
+      frame.addEventListener('load', function(){
+        // small beat so the site paints its first frame before we fade
+        setTimeout(reveal, 350);
+      });
+      // safety: if 'load' never fires but the frame is fine, reveal anyway
+      setTimeout(function(){ if (!shown) reveal(); }, 9000);
+      // if it truly can't embed, show the open-in-tab fallback
+      setTimeout(function(){ if (!shown) load.classList.add('failed'); }, 12000);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!-- ============================================================
+     KryzixsDEX — Google Sites embed  (super-clean, full-bleed)
+     In your Google Site:  Insert → Embed → "Embed code"
+     Paste EVERYTHING below → Next → drag the block to fill the
+     page (full width, as tall as it lets you).
+     ============================================================ -->
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  html,body{margin:0;height:100%;background:#0A0A0B;overflow:hidden}
+  #kxf{position:fixed;inset:0;width:100%;height:100%;border:0;display:block;background:#0A0A0B;opacity:0;transition:opacity .5s}
+  #kxf.on{opacity:1}
+  #kxl{position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
+    background:radial-gradient(1000px 560px at 50% -10%,rgba(255,255,255,.06),transparent 60%),#0A0A0B;
+    color:#fafafa;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;transition:opacity .5s,visibility .5s}
+  #kxl.off{opacity:0;visibility:hidden}
+  #kxl .w{font-family:Georgia,'Times New Roman',serif;font-weight:600;font-size:clamp(36px,7vw,64px);letter-spacing:-.03em}
+  #kxl .t{width:min(240px,60vw);height:3px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden}
+  #kxl .b{height:100%;width:40%;border-radius:99px;background:#fff;animation:s 1.1s ease-in-out infinite}
+  @keyframes s{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
+</style>
+<div id="kxl"><div class="w">KryzixsDEX</div><div class="t"><div class="b"></div></div></div>
+<iframe id="kxf"
+        src="https://kryzixsdex.pages.dev"
+        allow="fullscreen; clipboard-write; clipboard-read; autoplay; gamepad; pointer-lock; accelerometer; gyroscope; encrypted-media"
+        referrerpolicy="no-referrer"
+        allowfullscreen></iframe>
+<script>
+  (function(){var f=document.getElementById('kxf'),l=document.getElementById('kxl'),s=false;
+    function go(){if(s)return;s=true;f.classList.add('on');l.classList.add('off');
+      setTimeout(function(){if(l&&l.parentNode)l.parentNode.removeChild(l);},600);}
+    f.addEventListener('load',function(){setTimeout(go,350);});
+    setTimeout(function(){if(!s)go();},9000);})();
+</script>

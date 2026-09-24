@@ -18,13 +18,15 @@
     --line:rgba(255,255,255,.06);--line2:rgba(255,255,255,.10);--line3:rgba(255,255,255,.16);
     --t1:#f5f5fa;--t2:#a6a6bb;--t3:#6b6b80;
     --brand:#8b5cf6;--brand2:#a78bfa;--deep:#6d28d9;--btn:#3b0a63;--btnhi:#4c1595;--btnline:rgba(167,139,250,.35);
-    --err:#f0436a;--ok:#22c55e;--warn:#f5a623;--sbw:250px;--r:14px;
-    --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;--mono:'JetBrains Mono',monospace;
+    --err:#f0436a;--ok:#22c55e;--warn:#f5a623;--sbw:250px;--r:16px;
+    --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;--mono:'SF Mono','JetBrains Mono',ui-monospace,monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
-  body{font-family:var(--font);background:var(--bg0);color:var(--t1);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+  body{font-family:var(--font);background:var(--bg0);color:var(--t1);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-.011em;text-rendering:optimizeLegibility;overflow:hidden}
   button,input,textarea{font-family:inherit}
+  .nav-item,.btn,.send,.attach,.wsrc-btn,.sbtn,.gvbtn,.go,.tog,.cnew{transition:transform .12s cubic-bezier(.2,.8,.2,1),background .15s,color .15s,border-color .15s,box-shadow .15s,filter .15s}
+  .nav-item:active,.btn:active,.send:active,.attach:active,.wsrc-btn:active,.sbtn:active,.gvbtn:active,.go:active,.cnew:active{transform:scale(.97)}
   ::selection{background:rgba(139,92,246,.35);color:#fff}
   ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:transparent}
   ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:20px;border:2px solid var(--bg0)}
@@ -151,6 +153,14 @@
   .cbar input{flex:1;background:var(--bg2);border:1px solid var(--line2);border-radius:20px;padding:13px 18px;color:#fff;font-size:15px}
   .cbar input:focus{outline:none;border-color:var(--brand)}
   .cbar .send{width:40px;height:40px;flex:none;border-radius:50%;background:linear-gradient(180deg,#7c3aed,#6d28d9);border:0;color:#fff;font-size:19px;font-weight:800;cursor:pointer}
+  .cbar .attach{width:40px;height:40px;flex:none;border-radius:50%;background:var(--bg2);border:1px solid var(--line2);color:var(--t2);font-size:18px;cursor:pointer;display:grid;place-items:center;transition:.15s}
+  .cbar .attach:hover{color:#fff;border-color:var(--brand)}
+  .cbar .attach.busy{opacity:.5;pointer-events:none}
+  .cimg{max-width:min(64vw,260px);max-height:280px;border-radius:12px;display:block;cursor:pointer}
+  #bcT .cimg{max-height:120px;max-width:100%;margin-top:4px}
+  .b:has(.cimg){padding:4px;background:var(--bg3)}
+  .b.me:has(.cimg){background:#6d28d9}
+  .b:has(.cimg):before,.b:has(.cimg):after{display:none}
   .wall{margin:auto;text-align:center;color:var(--t3);display:flex;flex-direction:column;gap:14px;align-items:center}
 
   /* ===== alternate links ===== */
@@ -492,7 +502,7 @@
       <span class="typing-text" id="typingText">Someone is typing...</span>
       <div class="tdots"><i></i><i></i><i></i></div>
     </div>
-    <div class="cbar" id="cbar"><input id="cin" placeholder="Type a message…" maxlength="500" autocomplete="off"><button class="send" id="csend">↑</button></div>
+    <div class="cbar" id="cbar"><button class="attach" id="cattach" type="button" title="Attach an image or screenshot">＋</button><input id="cfile" type="file" accept="image/*" style="display:none"><input id="cin" placeholder="Type a message…" maxlength="500" autocomplete="off"><button class="send" id="csend">↑</button></div>
   </div>
 </template>
 
@@ -1010,12 +1020,13 @@
   /* ---- CHAT ---- */
   var feed, cin, lastId=0, seen={}, lastU=null, lastTs=0, timer=null, lastType=0, mounted=false, localTypingTmr=null;
   /* ---- active-users (client-side estimate: who we've seen post or type in the last ~2 min) ---- */
-  var active={}, ONLINE_WINDOW=120000;
+  var active={}, ONLINE_WINDOW=120000, serverOnline=0, lastOnlineFetch=0;
   function markActive(name){ if(name) active[name]=Date.now(); }
   function refreshOnline(){
     var now=Date.now(), me=user(); if(me) active[me]=now;
-    var n=0; for(var k in active){ if(now-active[k]<=ONLINE_WINDOW) n++; else delete active[k]; }
-    if(n<1) n=1;
+    var est=0; for(var k in active){ if(now-active[k]<=ONLINE_WINDOW) est++; else delete active[k]; }
+    if(now-lastOnlineFetch>12000){ lastOnlineFetch=now; fetch(API+'/auth/stats').then(function(r){return r.json();}).then(function(j){ if(j&&typeof j.online==='number') serverOnline=j.online; }).catch(function(){}); }
+    var n=Math.max(serverOnline, est, 1);
     var el=document.getElementById('cOnlineN'); if(el) el.textContent=n;
   }
   function rooms(){ try{return JSON.parse(ls('kx_rooms'))||[{id:'global',name:'Global'}];}catch(e){return[{id:'global',name:'Global'}];} }
@@ -1057,6 +1068,9 @@
       ping();
       showTypingBubble('You are typing…', true);
     });
+    var cfile=pg.querySelector('#cfile'), cattach=pg.querySelector('#cattach');
+    if(cattach&&cfile){ cattach.onclick=function(){ cfile.click(); }; cfile.onchange=function(){ if(cfile.files&&cfile.files[0]) attachImage(cfile.files[0]); cfile.value=''; }; }
+    cin.addEventListener('paste',function(e){ var items=(e.clipboardData&&e.clipboardData.items)||[]; for(var i=0;i<items.length;i++){ if(items[i].type&&items[i].type.indexOf('image')===0){ var f=items[i].getAsFile(); if(f){ e.preventDefault(); attachImage(f); return; } } } });
 
     var renBtn = pg.querySelector('#cRenameBtn');
     if(renBtn) renBtn.onclick=function(){
@@ -1109,6 +1123,16 @@
 
   function fmtG(ts){ var d=new Date(ts); return d.toLocaleDateString([],{month:'short',day:'numeric'})+' · '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
 
+  function isImgUrl(t){ return /^https?:\/\/\S+\.(png|jpe?g|gif|webp|bmp|svg)(\?\S*)?$/i.test(t) || /^https?:\/\/(files\.catbox\.moe|i\.imgur\.com|0x0\.st|media\.discordapp\.net|cdn\.discordapp\.com)\/\S+/i.test(t) || /^data:image\//i.test(t); }
+  function setMsgBody(el, text){
+    var t=(text||'').trim();
+    if(isImgUrl(t)){
+      var img=document.createElement('img'); img.className='cimg'; img.loading='lazy'; img.alt='shared image'; img.src=t;
+      img.onclick=function(){ try{ window.open(t,'_blank'); }catch(e){} };
+      img.onerror=function(){ img.replaceWith(document.createTextNode(text)); };
+      el.appendChild(img);
+    } else { el.appendChild(document.createTextNode(text||'')); }
+  }
   function add(m){
     markActive(m.user);
     if(seen[m.id])return;
@@ -1131,7 +1155,7 @@
     lastU=m.user;
     var b=document.createElement('div');
     b.className='b '+(mine?'me':'them');
-    b.textContent=m.text;
+    setMsgBody(b, m.text);
     if(isAdmin()){
       var del=document.createElement('span');
       del.textContent='✕';
@@ -1199,6 +1223,28 @@
       body:JSON.stringify({user:u,text:v})
     }).then(poll).catch(function(){cin.value=v;});
   }
+  function sendRaw(text){ var u=user(); fetch(API+'/message?room='+curRoom(),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user:u,text:text})}).then(poll).catch(function(){}); }
+  // Upload an image to a public host and return its URL — no backend storage needed.
+  function uploadImage(file){
+    var fd=new FormData(); fd.append('reqtype','fileupload'); fd.append('fileToUpload',file);
+    return fetch('https://catbox.moe/user/api.php',{method:'POST',body:fd})
+      .then(function(r){ if(!r.ok) throw 0; return r.text(); })
+      .then(function(t){ t=(t||'').trim(); if(/^https?:\/\//.test(t)) return t; throw 0; })
+      .catch(function(){
+        var fd2=new FormData(); fd2.append('file',file);
+        return fetch('https://0x0.st',{method:'POST',body:fd2})
+          .then(function(r){ if(!r.ok) throw 0; return r.text(); })
+          .then(function(t){ t=(t||'').trim(); if(/^https?:\/\//.test(t)) return t; throw 0; });
+      });
+  }
+  function attachImage(file){
+    if(!file || !/^image\//.test(file.type||'')) return;
+    if(file.size > 12*1024*1024){ kxAlert('That image is too large (max 12 MB).','Upload'); return; }
+    var btn=document.getElementById('cattach'); if(btn){ btn.classList.add('busy'); btn.textContent='…'; }
+    uploadImage(file).then(function(url){ sendRaw(url); }).catch(function(){
+      kxAlert('Image upload failed — the image host may be blocked on this network. Try pasting an image link instead.','Upload');
+    }).then(function(){ if(btn){ btn.classList.remove('busy'); btn.textContent='＋'; } });
+  }
 
   function ping(){
     var u=user();
@@ -1240,7 +1286,9 @@
     $('#aINB').onclick=function(){ var n=Math.max(1,Math.min(50,parseInt($('#aIN').value,10)||0)); if(!n)return; var made=[]; (function lp(i){ if(i>=n){ kxAlert('Made '+made.length+':\n\n'+made.join('\n'),'Invites'); ail(); return; } fetch(API+'/auth/newinvite',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:token()})}).then(function(r){return r.json();}).then(function(j){ if(j&&j.code)made.push(j.code); lp(i+1); }); })(0); };
     ail(); }
   function ail(){ var box=$('#aInv'); if(!box)return; fetch(API+'/auth/invites?token='+encodeURIComponent(token())).then(function(r){return r.json();}).then(function(j){ if(!j||!j.invites){box.innerHTML='';return;} if(!j.invites.length){box.innerHTML='<span style="color:#666;font-size:12px">No codes yet.</span>';return;} box.innerHTML=j.invites.map(function(v){ return '<span class="inv'+(v.usedBy?' used':'')+'">'+esc(v.code)+(v.usedBy?'<span class="u">→ '+esc(v.usedBy)+'</span>':'<button data-cp="'+esc(v.code)+'" style="color:#9b9ba3">⧉</button>')+'<button data-del="'+esc(v.code)+'">✕</button></span>'; }).join(''); box.querySelectorAll('button[data-cp]').forEach(function(b){ b.onclick=function(){ try{navigator.clipboard.writeText(b.dataset.cp);b.textContent='✓';}catch(e){} }; }); box.querySelectorAll('button[data-del]').forEach(function(b){ b.onclick=function(){ fetch(API+'/auth/delinvite',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:token(),code:b.dataset.del})}).then(ail); }; }); }); }
-  function aBroad(body){ body.innerHTML='<div class="lbl">Send a broadcast</div><textarea id="aB" maxlength="200" placeholder="Big banner shown to everyone online."></textarea><button id="aBB" class="gold" style="width:100%;padding:12px;border-radius:10px;margin-top:10px">Broadcast to everyone</button><div class="lbl">Danger zone</div><button id="aW" class="danger" style="width:100%;padding:12px;border-radius:10px;background:rgba(240,67,106,.1);border:1px solid rgba(240,67,106,.3)">Wipe Global chat</button>';
+  function aBroad(body){ body.innerHTML='<div class="lbl">Send a broadcast</div><textarea id="aB" maxlength="200" placeholder="Big banner shown to everyone online. Paste an image link, or attach one below."></textarea><input id="aBFile" type="file" accept="image/*" style="display:none"><button id="aBImg" style="width:100%;padding:10px;border-radius:10px;margin-top:8px;background:var(--bg2);border:1px solid var(--line2);color:var(--t2)">＋ Attach image</button><button id="aBB" class="gold" style="width:100%;padding:12px;border-radius:10px;margin-top:8px">Broadcast to everyone</button><div class="lbl">Danger zone</div><button id="aW" class="danger" style="width:100%;padding:12px;border-radius:10px;background:rgba(240,67,106,.1);border:1px solid rgba(240,67,106,.3)">Wipe Global chat</button>';
+    var aBFile=$('#aBFile'), aBImg=$('#aBImg');
+    if(aBImg&&aBFile){ aBImg.onclick=function(){ aBFile.click(); }; aBFile.onchange=function(){ var f=aBFile.files&&aBFile.files[0]; aBFile.value=''; if(!f)return; aBImg.textContent='Uploading…'; uploadImage(f).then(function(url){ $('#aB').value=url; }).catch(function(){ kxAlert('Upload failed — the host may be blocked. Paste an image link instead.','Upload'); }).then(function(){ aBImg.textContent='＋ Attach image'; }); }; }
     $('#aBB').onclick=function(){ var v=$('#aB').value.trim(); if(!v)return; fetch(API+'/message?room=broadcast',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user:user(),text:v})}).then(function(r){return r.json();}).then(function(j){ if(j&&j.ok){ $('#aB').value=''; $('#adm').classList.remove('on'); setTimeout(bcPoll,150); } else kxAlert((j&&j.error)||'Failed','Error'); }); };
     $('#aW').onclick=function(){ kxConfirm('Wipe ALL Global messages?',{okText:'Wipe',danger:true}).then(function(ok){ if(ok)fetch(API+'/admin/clear?room=global',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:token()})}).then(function(){ kxAlert('Wiped.','Done'); }); }); }; }
 
@@ -1249,7 +1297,7 @@
   var bcTmr=null;
   function bcHide(){ clearTimeout(bcTmr); if(!bcShow)return; $('#bc').classList.remove('on'); setTimeout(function(){ bcShow=false; bcDrain(); },500); }
   function bcDrain(){ if(bcShow||!bcQ.length)return; var m=bcQ.shift(); bcShow=true;
-    $('#bcT').textContent=m.text;
+    var bcTel=$('#bcT'); bcTel.innerHTML=''; setMsgBody(bcTel, m.text);
     var w=$('#bcW'); w.innerHTML=''; var av=document.createElement('i'); av.textContent=(m.user||'A').slice(0,1).toUpperCase(); w.appendChild(av); w.appendChild(document.createTextNode(m.user));
     $('#bcTm').textContent=m.ts?new Date(m.ts).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'just now';
     var dur=Math.min(12000,5000+m.text.length*70), bc=$('#bc'); bc.style.setProperty('--bcd',dur+'ms');

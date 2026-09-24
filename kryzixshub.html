@@ -399,9 +399,9 @@
       </div>
       <div class="page" id="pgWatch"><div class="wwrap">
         <div class="whero">
-          <div class="whead"><div class="whi">▶</div><div><div class="wtt">Watch & Download</div><div class="wsub">Search YouTube or paste any link — stream it here, copy the link, or download to MP4 / MP3.</div></div></div>
+          <div class="whead"><div class="whi">▶</div><div><div class="wtt">Watch & Download</div><div class="wsub">Paste any YouTube link or video ID — stream directly or download to MP4 / MP3.</div></div></div>
           <form class="wform" id="wform">
-            <input id="wurl" placeholder="Search YouTube, or paste a link / video ID…" autocomplete="off">
+            <input id="wurl" placeholder="Paste a YouTube link or video ID…" autocomplete="off">
             <div class="wact">
               <select id="wquality" class="wsel" title="Video Quality">
                 <option value="best">Best (auto)</option>
@@ -410,7 +410,7 @@
                 <option value="480p">480p</option>
                 <option value="360p">360p</option>
               </select>
-              <button class="btn" type="submit" id="wbtnPlay" title="Play a link, or search YouTube by keyword">Play / Search ▶</button>
+              <button class="btn" type="submit" id="wbtnPlay" title="Stream in player">Play ▶</button>
               <button class="btn btn-mp4" type="button" id="wbtnMp4" title="Download as MP4 video">⬇ MP4</button>
               <button class="btn btn-mp3" type="button" id="wbtnMp3" title="Download as MP3 audio">🎵 MP3</button>
             </div>
@@ -958,64 +958,12 @@
     }, 600);
   }
 
-  function renderSearch(res, vids){
-    if(!vids.length){ res.innerHTML='No results found.'; return; }
-    res.innerHTML=vids.slice(0,12).map(function(v){
-      return '<div class="wrc" data-id="'+esc(v.id)+'" style="width:200px">'+
-        '<div class="wthumb" style="cursor:pointer"><img src="https://i.ytimg.com/vi/'+esc(v.id)+'/mqdefault.jpg" style="width:100%;border-radius:10px" loading="lazy"></div>'+
-        '<div class="wmeta" style="font-size:12px;margin-top:6px;line-height:1.4"><b>'+esc(v.title)+'</b><br><span style="color:var(--t3)">'+esc(v.author||'')+'</span></div>'+
-        '<div style="display:flex;gap:6px;margin-top:7px"><button class="wsrc-btn wplay" style="flex:1">▶ Play</button><button class="wsrc-btn wcopy" title="Copy YouTube link">⧉ Copy</button></div>'+
-      '</div>';
-    }).join('');
-    res.querySelectorAll('.wrc').forEach(function(card){
-      var id=card.dataset.id, play=function(){ playYt(id); };
-      card.querySelector('.wthumb').onclick=play;
-      card.querySelector('.wplay').onclick=play;
-      card.querySelector('.wcopy').onclick=function(){
-        var url='https://www.youtube.com/watch?v='+id, b=this, t=b.textContent;
-        try{ navigator.clipboard.writeText(url); }catch(e){}
-        b.textContent='✓ Copied'; setTimeout(function(){ b.textContent=t; },1200);
-      };
-    });
-  }
-  // Search YouTube via Invidious/Piped mirrors, falling through hosts until one answers.
-  function searchYt(q){
-    var hdr=$('#wsResultsHdr'), res=$('#wsResults');
-    hdr.style.display='flex'; res.style.display='flex'; res.innerHTML='Searching…';
-    function tryInv(i){
-      if(i>=INV_HOSTS.length){ tryPiped(0); return; }
-      fetch(INV_HOSTS[i]+'/api/v1/search?type=video&q='+encodeURIComponent(q))
-        .then(function(r){ if(!r.ok) throw 0; return r.json(); })
-        .then(function(j){
-          var vids=(j||[]).filter(function(v){return v.type==='video'&&v.videoId;})
-            .map(function(v){ return {id:v.videoId,title:v.title,author:v.author}; });
-          if(!vids.length) throw 0;
-          renderSearch(res, vids);
-        }).catch(function(){ tryInv(i+1); });
-    }
-    function tryPiped(i){
-      if(i>=PIPED_HOSTS.length){ res.innerHTML='Search is unreachable right now — paste a direct or Google link instead.'; return; }
-      fetch(PIPED_HOSTS[i]+'/search?filter=videos&q='+encodeURIComponent(q))
-        .then(function(r){ if(!r.ok) throw 0; return r.json(); })
-        .then(function(j){
-          var items=(j&&j.items)||[];
-          var vids=items.map(function(v){
-            var u=v.url||''; var m=u.match(/v=([A-Za-z0-9_-]{11})/);
-            return m?{id:m[1],title:v.title,author:v.uploaderName}:null;
-          }).filter(Boolean);
-          if(!vids.length) throw 0;
-          renderSearch(res, vids);
-        }).catch(function(){ tryPiped(i+1); });
-    }
-    tryInv(0);
-  }
-
   $('#wform').addEventListener('submit', function(e){
     e.preventDefault();
     var raw = $('#wurl').value.trim();
     if(!raw) return;
     var id = ytId(raw);
-    if(!id){ searchYt(raw); return; }
+    if(!id){ var res=$('#wsResults'),hdr=$('#wsResultsHdr'); if(hdr)hdr.style.display='none'; if(res){res.style.display='none';res.innerHTML='';} $('#wurl').placeholder="Enter a valid YouTube link or video ID…"; return; }
     playYt(id);
   });
   $('#wbtnMp4').onclick = function(){ startDownload('mp4'); };

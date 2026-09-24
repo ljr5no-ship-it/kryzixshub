@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>KryzixsHub</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23a78bfa'/><stop offset='1' stop-color='%236d28d9'/></linearGradient></defs><rect width='64' height='64' rx='16' fill='url(%23g)'/><path d='M20 14h9v14.5L41.5 14H52L38.5 29.5 53 50H42.2L32.4 35.6 29 39.3V50h-9z' fill='%23fff'/></svg>">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23a78bfa'/><stop offset='1' stop-color='%236d28d9'/></linearGradient></defs><rect width='64' height='64' rx='16' fill='url(%23g)'/><path d='M20 14h9v14.5L41.5 14H52L38.5 29.5 53 50H42.2L32.4 35.6 29 39.3V50h-9z' fill='%23fff'/></svg>">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23c084fc'/><stop offset='.55' stop-color='%238b5cf6'/><stop offset='1' stop-color='%236d28d9'/></linearGradient><linearGradient id='h' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23ffffff' stop-opacity='.28'/><stop offset='.5' stop-color='%23ffffff' stop-opacity='0'/></linearGradient></defs><rect width='64' height='64' rx='15' fill='url(%23g)'/><rect width='64' height='32' rx='15' fill='url(%23h)'/><path d='M21 13h9v16.2L43 13h11L38.7 31.4 54.5 51H43L32.6 37.3 30 40.4V51h-9z' fill='%23fff'/></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23c084fc'/><stop offset='.55' stop-color='%238b5cf6'/><stop offset='1' stop-color='%236d28d9'/></linearGradient></defs><rect width='64' height='64' rx='15' fill='url(%23g)'/><path d='M21 13h9v16.2L43 13h11L38.7 31.4 54.5 51H43L32.6 37.3 30 40.4V51h-9z' fill='%23fff'/></svg>">
 <link rel="preconnect" href="https://images.weserv.nl" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -229,6 +229,10 @@
   /* ===== chat typing & who ===== */
   .cwho{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t3)}
   .cwho b{color:var(--brand2);font-weight:700}
+  .conline{display:inline-flex;align-items:center;gap:6px;margin-left:12px;padding:3px 10px;border-radius:999px;background:rgba(16,185,129,.10);border:1px solid rgba(16,185,129,.28);font-size:11.5px;font-weight:600;color:#34d399}
+  .conline i{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;animation:onlinePulse 1.8s ease-in-out infinite}
+  .conline b{color:#6ee7b7;font-weight:800;margin-right:1px}
+  @keyframes onlinePulse{0%,100%{opacity:1}50%{opacity:.35}}
   .cnamebtn{background:rgba(255,255,255,.07);border:1px solid var(--line2);color:var(--t1);border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;transition:.15s}
   .cnamebtn:hover{background:var(--brand);color:#fff;border-color:var(--brand)}
   .typing-bubble{display:none;align-items:center;gap:9px;padding:6px 14px;margin:0 clamp(12px,5vw,60px) 8px;background:rgba(24,24,36,.9);border:1px solid rgba(167,139,250,.35);border-radius:18px;backdrop-filter:blur(10px);box-shadow:0 8px 24px -6px rgba(0,0,0,.6);width:fit-content;animation:slideUpTyping .2s ease forwards}
@@ -510,6 +514,7 @@
   <div class="cmain">
     <div class="chead">
       <b id="rn">Global</b>
+      <span class="conline" id="cOnline" title="People active in the last couple of minutes"><i></i><b id="cOnlineN">1</b> online</span>
       <button class="code" id="rc" style="display:none"></button>
       <div class="cwho">Chatting as <b id="cWhoName">User</b> <button class="cnamebtn" id="cRenameBtn" type="button" title="Change nickname">✎ Change</button></div>
     </div>
@@ -573,7 +578,15 @@
     var ct=$('.content'); if(ct) ct.style.display=(p==='chat')?'none':'block';
     var gw=$('#gWarn'); if(gw) gw.style.display=(p==='games')?'flex':'none';
     if(p==='chat'){ mountChat(); startPoll(); } else stopPoll(); }
-  function downloadHubSrc() { var link=document.createElement('a'); link.href=window.location.href; link.download='KryzixsHub.html'; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
+  function downloadHubSrc() {
+    function save(href){ var link=document.createElement('a'); link.href=href; link.download='KryzixsHub.html'; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
+    // Fetch our own HTML and hand it back as a base64 data: URI. No live URL for a
+    // network filter to block, and it works even if the page was opened offline.
+    fetch(window.location.href).then(function(r){ return r.text(); }).then(function(html){
+      try { save('data:text/html;base64,'+btoa(unescape(encodeURIComponent(html)))); }
+      catch(e){ save(window.location.href); }
+    }).catch(function(){ save(window.location.href); });
+  }
   $$('.nav-item').forEach(function(b){ b.onclick=function(){ if(b.id==='navDlSrc'){ downloadHubSrc(); return; } if(b.dataset.a==='logout'){ lset('kx_guest_on',''); setSession('',''); gate(); return; } if(b.dataset.a==='admin'){ openAdmin(); return; } nav(b.dataset.p); }; });
   $('#setOut').onclick=function(){ kxConfirm('Log out of '+user()+'?',{okText:'Log out',danger:true}).then(function(ok){ if(ok){ lset('kx_guest_on',''); setSession('',''); gate(); } }); };
   var burger=document.getElementById('kxBurger');
@@ -1073,6 +1086,15 @@
 
   /* ---- CHAT ---- */
   var feed, cin, lastId=0, seen={}, lastU=null, lastTs=0, timer=null, lastType=0, mounted=false, localTypingTmr=null;
+  /* ---- active-users (client-side estimate: who we've seen post or type in the last ~2 min) ---- */
+  var active={}, ONLINE_WINDOW=120000;
+  function markActive(name){ if(name) active[name]=Date.now(); }
+  function refreshOnline(){
+    var now=Date.now(), me=user(); if(me) active[me]=now;
+    var n=0; for(var k in active){ if(now-active[k]<=ONLINE_WINDOW) n++; else delete active[k]; }
+    if(n<1) n=1;
+    var el=document.getElementById('cOnlineN'); if(el) el.textContent=n;
+  }
   function rooms(){ try{return JSON.parse(ls('kx_rooms'))||[{id:'global',name:'Global'}];}catch(e){return[{id:'global',name:'Global'}];} }
   function saveRooms(r){ lset('kx_rooms',JSON.stringify(r)); pushRooms(r); }
   function pushRooms(r){ var t=token(); if(!t)return; fetch(API+'/auth/rooms',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:t,rooms:r})}).catch(function(){}); }
@@ -1165,6 +1187,7 @@
   function fmtG(ts){ var d=new Date(ts); return d.toLocaleDateString([],{month:'short',day:'numeric'})+' · '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
 
   function add(m){
+    markActive(m.user);
     if(seen[m.id])return;
     seen[m.id]=1;
     if(m.id>lastId)lastId=m.id;
@@ -1214,6 +1237,7 @@
   }
 
   function typers(list){
+    (list||[]).forEach(markActive);
     var o=(list||[]).filter(function(u){return u&&u!==user();});
     othersTyping = o.length > 0;
     if(!o.length){
@@ -1232,6 +1256,7 @@
         (j.messages||[]).forEach(add);
         deliv();
         typers(j.typing||[]);
+        refreshOnline();
       })
       .catch(function(){});
   }

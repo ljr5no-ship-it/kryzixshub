@@ -1290,25 +1290,32 @@
     }).then(poll).catch(function(){cin.value=v;});
   }
   function sendRaw(text){ var u=user(); fetch(API+'/message?room='+curRoom(),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user:u,text:text})}).then(poll).catch(function(){}); }
-  // Upload an image to a public host and return its URL — no backend storage needed.
+  // Paste a free key from https://api.imgbb.com (Get API key) to enable file/screenshot uploads.
+  // imgbb is CORS-enabled so it works from the browser; anonymous no-key hosts (catbox/uguu) are not.
+  var IMGBB_KEY='';
   function uploadImage(file){
-    var fd=new FormData(); fd.append('reqtype','fileupload'); fd.append('fileToUpload',file);
-    return fetch('https://catbox.moe/user/api.php',{method:'POST',body:fd})
-      .then(function(r){ if(!r.ok) throw 0; return r.text(); })
-      .then(function(t){ t=(t||'').trim(); if(/^https?:\/\//.test(t)) return t; throw 0; })
-      .catch(function(){
-        var fd2=new FormData(); fd2.append('file',file);
-        return fetch('https://0x0.st',{method:'POST',body:fd2})
-          .then(function(r){ if(!r.ok) throw 0; return r.text(); })
-          .then(function(t){ t=(t||'').trim(); if(/^https?:\/\//.test(t)) return t; throw 0; });
-      });
+    if(!IMGBB_KEY) return Promise.reject(new Error('no-key'));
+    return new Promise(function(resolve,reject){
+      var fr=new FileReader();
+      fr.onload=function(){
+        var b64=String(fr.result).split(',')[1]||'';
+        var fd=new FormData(); fd.append('image', b64);
+        fetch('https://api.imgbb.com/1/upload?key='+encodeURIComponent(IMGBB_KEY),{method:'POST',body:fd})
+          .then(function(r){ return r.json(); })
+          .then(function(j){ if(j&&j.data&&j.data.url) resolve(j.data.url); else reject(new Error('resp')); })
+          .catch(reject);
+      };
+      fr.onerror=function(){ reject(new Error('read')); };
+      fr.readAsDataURL(file);
+    });
   }
   function attachImage(file){
     if(!file || !/^image\//.test(file.type||'')) return;
-    if(file.size > 12*1024*1024){ kxAlert('That image is too large (max 12 MB).','Upload'); return; }
+    if(file.size > 20*1024*1024){ kxAlert('That image is too large (max 20 MB).','Image'); return; }
+    if(!IMGBB_KEY){ kxAlert('File uploads need a one-time free image key. For now, paste an image link into chat and it will show up as a picture.','Image'); return; }
     var btn=document.getElementById('cattach'); if(btn){ btn.classList.add('busy'); btn.textContent='…'; }
     uploadImage(file).then(function(url){ sendRaw(url); }).catch(function(){
-      kxAlert('Image upload failed — the image host may be blocked on this network. Try pasting an image link instead.','Upload');
+      kxAlert('Image upload failed. Check the image key, or paste an image link instead.','Image');
     }).then(function(){ if(btn){ btn.classList.remove('busy'); btn.textContent='＋'; } });
   }
 
@@ -1354,7 +1361,7 @@
   function ail(){ var box=$('#aInv'); if(!box)return; fetch(API+'/auth/invites?token='+encodeURIComponent(token())).then(function(r){return r.json();}).then(function(j){ if(!j||!j.invites){box.innerHTML='';return;} if(!j.invites.length){box.innerHTML='<span style="color:#666;font-size:12px">No codes yet.</span>';return;} box.innerHTML=j.invites.map(function(v){ return '<span class="inv'+(v.usedBy?' used':'')+'">'+esc(v.code)+(v.usedBy?'<span class="u">→ '+esc(v.usedBy)+'</span>':'<button data-cp="'+esc(v.code)+'" style="color:#9b9ba3">⧉</button>')+'<button data-del="'+esc(v.code)+'">✕</button></span>'; }).join(''); box.querySelectorAll('button[data-cp]').forEach(function(b){ b.onclick=function(){ try{navigator.clipboard.writeText(b.dataset.cp);b.textContent='✓';}catch(e){} }; }); box.querySelectorAll('button[data-del]').forEach(function(b){ b.onclick=function(){ fetch(API+'/auth/delinvite',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:token(),code:b.dataset.del})}).then(ail); }; }); }); }
   function aBroad(body){ body.innerHTML='<div class="lbl">Send a broadcast</div><textarea id="aB" maxlength="200" placeholder="Big banner shown to everyone online. Paste an image link, or attach one below."></textarea><input id="aBFile" type="file" accept="image/*" style="display:none"><button id="aBImg" style="width:100%;padding:10px;border-radius:10px;margin-top:8px;background:var(--bg2);border:1px solid var(--line2);color:var(--t2)">＋ Attach image</button><button id="aBB" class="gold" style="width:100%;padding:12px;border-radius:10px;margin-top:8px">Broadcast to everyone</button><div class="lbl">Danger zone</div><button id="aW" class="danger" style="width:100%;padding:12px;border-radius:10px;background:rgba(240,67,106,.1);border:1px solid rgba(240,67,106,.3)">Wipe Global chat</button>';
     var aBFile=$('#aBFile'), aBImg=$('#aBImg');
-    if(aBImg&&aBFile){ aBImg.onclick=function(){ aBFile.click(); }; aBFile.onchange=function(){ var f=aBFile.files&&aBFile.files[0]; aBFile.value=''; if(!f)return; aBImg.textContent='Uploading…'; uploadImage(f).then(function(url){ $('#aB').value=url; }).catch(function(){ kxAlert('Upload failed — the host may be blocked. Paste an image link instead.','Upload'); }).then(function(){ aBImg.textContent='＋ Attach image'; }); }; }
+    if(aBImg&&aBFile){ aBImg.onclick=function(){ if(!IMGBB_KEY){ kxAlert('File uploads need a one-time free image key. Paste an image link into the box instead.','Image'); return; } aBFile.click(); }; aBFile.onchange=function(){ var f=aBFile.files&&aBFile.files[0]; aBFile.value=''; if(!f)return; aBImg.textContent='Uploading…'; uploadImage(f).then(function(url){ $('#aB').value=url; }).catch(function(){ kxAlert('Upload failed. Check the image key, or paste an image link instead.','Image'); }).then(function(){ aBImg.textContent='＋ Attach image'; }); }; }
     $('#aBB').onclick=function(){ var v=$('#aB').value.trim(); if(!v)return; fetch(API+'/message?room=broadcast',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user:user(),text:v})}).then(function(r){return r.json();}).then(function(j){ if(j&&j.ok){ $('#aB').value=''; $('#adm').classList.remove('on'); setTimeout(bcPoll,150); } else kxAlert((j&&j.error)||'Failed','Error'); }); };
     $('#aW').onclick=function(){ kxConfirm('Wipe ALL Global messages?',{okText:'Wipe',danger:true}).then(function(ok){ if(ok)fetch(API+'/admin/clear?room=global',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:token()})}).then(function(){ kxAlert('Wiped.','Done'); }); }); }; }
 

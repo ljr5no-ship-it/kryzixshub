@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
 <style>
   :root{
-    --bg0:#08080c;--bg1:#0d0d14;--bg2:#12121c;--bg3:#171722;--bg4:#1e1e2b;
+    --bg0:#000000;--bg1:#080808;--bg2:#0e0e0e;--bg3:#161616;--bg4:#1f1f1f;
     --line:rgba(255,255,255,.06);--line2:rgba(255,255,255,.10);--line3:rgba(255,255,255,.16);
     --t1:#f5f5fa;--t2:#a6a6bb;--t3:#6b6b80;
     --brand:#8b5cf6;--brand2:#a78bfa;--deep:#6d28d9;--btn:#3b0a63;--btnhi:#4c1595;--btnline:rgba(167,139,250,.35);
@@ -105,6 +105,9 @@
   .gcard img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;background:var(--bg3)}
   .gcard .gt{font-size:14px;font-weight:700;margin:12px 14px 3px}
   .gcard .gd{font-size:11.5px;color:var(--t3);margin:0 14px 14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .gcard .gdel{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid var(--line2);color:#fff;font-size:12px;line-height:22px;text-align:center;opacity:0;transition:opacity .15s;backdrop-filter:blur(4px)}
+  .gcard:hover .gdel{opacity:1}
+  .gcard .gdel:hover{background:var(--err)}
   .gloading{color:var(--t3);text-align:center;padding:60px;font-size:14px}
 
   /* ===== game player ===== */
@@ -424,7 +427,7 @@
     <div class="sb-bottom"><div class="sb-acct"><div class="sb-av" id="sbAv">?</div><div><div class="sb-nm" id="sbNm">User</div><div class="sb-rl" id="sbRl">member</div></div></div></div>
   </aside>
   <div id="main">
-    <div class="topbar"><h1 id="crumb">Games</h1><div class="warn" id="gWarn">⚠️ Some games blocked by Securly — many still work</div></div>
+    <div class="topbar"><h1 id="crumb">Games</h1><div class="warn" id="gWarn">🎮 Scratch Arcade — paste a project link or ID to add any game</div></div>
     <div class="content">
       <div class="page on" id="pgGames">
         <input class="gsearch" id="gsearch" placeholder="Search games…" autocomplete="off">
@@ -636,16 +639,42 @@
     img.onerror = null;
     img.src = gameThumbSvg(img.dataset.title);
   };
-  (function loadGames(){ var s=document.createElement('script'); s.src=GAMESJS; s.onload=function(){ try{ GAMES=(typeof games!=='undefined'&&games)||window.games||[]; }catch(e){ GAMES=window.games||[]; } var DEAD={'Fruit Merge':1,'Super Monkey Ball':1,'Speed Stars':1,'Escape Road':1,"They're Coming":1}; GAMES=GAMES.filter(function(g){return g&&!g.secret&&g.image&&g.url&&!DEAD[g.title]&&!ls('kx_dead_'+g.title);}); renderGames(''); }; s.onerror=function(){ $('#ggrid').innerHTML='<div class="gloading">Could not load the game list (network blocked?).</div>'; }; document.head.appendChild(s); })();
-  function renderGames(q){ var grid=$('#ggrid'); q=(q||'').toLowerCase(); var list=GAMES.filter(function(g){ return !q||(g.title||'').toLowerCase().indexOf(q)>=0; });
-    if(!list.length){ grid.innerHTML='<div class="gloading">No games'+(q?' match "'+esc(q)+'"':'')+'.</div>'; return; }
-    grid.innerHTML=list.slice(0,600).map(function(g,i){
-      var src = esc(imgUrl(g.image));
-      var raw = esc(g.image || '');
-      return '<div class="gcard" data-i="'+GAMES.indexOf(g)+'"><img '+(i<18?'fetchpriority="high"':'loading="lazy"')+' decoding="async" src="'+src+'" data-fallback="'+esc(mirror(g.image)||g.image||'')+'" data-title="'+esc(g.title)+'" onerror="onImgErr(this)"><div class="gt">'+esc(g.title)+'</div><div class="gd">'+esc(g.desc||'')+'</div></div>';
+  /* ===== Scratch arcade — plays projects via Scratch's official embed player ===== */
+  function renderGames(){} /* legacy stub, old game grid removed */
+  var DEFAULT_SCRATCH=[{id:'1257703054',title:'Featured Game'}];
+  function scratchList(){ try{ var a=JSON.parse(ls('kx_scratch')||'null'); if(a&&a.length) return a; }catch(e){} return DEFAULT_SCRATCH.slice(); }
+  function saveScratch(a){ lset('kx_scratch', JSON.stringify(a)); }
+  function extractScratchId(s){ s=(s||'').trim(); var m=s.match(/scratch\.mit\.edu\/projects\/(\d+)/); if(m) return m[1]; if(/^\d{4,}$/.test(s)) return s; return null; }
+  function openScratch(id,title){
+    if(!id) return;
+    $('#gvt').textContent=title||('Scratch #'+id);
+    $('#gv').classList.add('on');
+    var v=$('#gvload'); if(v){ v.style.display='grid'; v.innerHTML='<div class="spin"></div><div style="font-size:13px">Loading…</div>'; }
+    var f=resetViewerFrame()||$('#gvframe');
+    f.onload=function(){ var vv=$('#gvload'); if(vv) vv.style.display='none'; };
+    f.src='https://scratch.mit.edu/projects/'+id+'/embed';
+  }
+  function removeScratch(id){ saveScratch(scratchList().filter(function(x){return x.id!==id;})); renderScratch(); }
+  function renderScratch(){
+    var grid=$('#ggrid'); if(!grid) return; var list=scratchList();
+    if(!list.length){ grid.innerHTML='<div class="gloading">No games yet. Paste a Scratch link or ID above to add one.</div>'; return; }
+    grid.innerHTML=list.map(function(g){
+      return '<div class="gcard" data-id="'+esc(g.id)+'" data-t="'+esc(g.title||'')+'">'+
+        '<img loading="lazy" decoding="async" src="https://uploads.scratch.mit.edu/get_image/project/'+esc(g.id)+'_480x360.png" onerror="this.style.opacity=0.2">'+
+        '<div class="gt">'+esc(g.title||('Scratch #'+g.id))+'</div><div class="gd">Scratch project</div>'+
+        '<span class="gdel" data-id="'+esc(g.id)+'" title="Remove">✕</span></div>';
     }).join('');
-    grid.querySelectorAll('.gcard').forEach(function(c){ c.onclick=function(){ openGame(GAMES[+c.dataset.i]); }; }); }
-  $('#gsearch').addEventListener('input',function(){ renderGames($('#gsearch').value); });
+    grid.querySelectorAll('.gcard').forEach(function(c){ c.onclick=function(e){ if(e.target&&e.target.classList.contains('gdel')){ e.stopPropagation(); removeScratch(c.dataset.id); return; } openScratch(c.dataset.id, c.dataset.t); }; });
+  }
+  function addScratch(raw){
+    var id=extractScratchId(raw);
+    if(!id){ kxAlert('Paste a Scratch project link (scratch.mit.edu/projects/…) or its numeric ID.','Scratch'); return; }
+    var a=scratchList();
+    if(a.some(function(x){return x.id===id;})){ openScratch(id); return; }
+    a.push({id:id,title:'Scratch #'+id}); saveScratch(a); renderScratch();
+    fetch('https://api.scratch.mit.edu/projects/'+id).then(function(r){return r.json();}).then(function(j){ if(j&&j.title){ saveScratch(scratchList().map(function(x){return x.id===id?{id:id,title:j.title}:x;})); renderScratch(); } }).catch(function(){});
+  }
+  (function initScratch(){ var s=$('#gsearch'); if(s){ s.placeholder='Paste a Scratch link or ID to add a game…'; s.addEventListener('keydown',function(e){ if(e.key==='Enter'){ addScratch(s.value.trim()); s.value=''; } }); } renderScratch(); })();
   var curGame=null, gvTimer=null, loadSeq=0, activeGameHtml=null;
   function cleanGameHtml(h){
     if(!h) return '';
@@ -1136,6 +1165,7 @@
     });
     var cfile=pg.querySelector('#cfile'), cattach=pg.querySelector('#cattach');
     if(cattach&&cfile){ cattach.onclick=function(){ cfile.click(); }; cfile.onchange=function(){ if(cfile.files&&cfile.files[0]) attachImage(cfile.files[0]); cfile.value=''; }; }
+    if(cattach&&!IMGBB_KEY){ cattach.style.display='none'; if(cin) cin.placeholder='Type a message…  (paste an image link to share a pic)'; }
     cin.addEventListener('paste',function(e){ var items=(e.clipboardData&&e.clipboardData.items)||[]; for(var i=0;i<items.length;i++){ if(items[i].type&&items[i].type.indexOf('image')===0){ var f=items[i].getAsFile(); if(f){ e.preventDefault(); attachImage(f); return; } } } });
 
     var renBtn = pg.querySelector('#cRenameBtn');

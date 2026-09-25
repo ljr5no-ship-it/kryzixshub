@@ -618,16 +618,31 @@
     f.src='https://scratch.mit.edu/projects/'+id+'/embed';
   }
   function removeScratch(id){ saveScratch(scratchList().filter(function(x){return x.id!==id;})); renderScratch(); }
+  var BIKE_THUMB="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100'%3E%3Crect width='160' height='100' fill='%230a0512'/%3E%3Cpath d='M0 72 Q40 46 80 60 T160 54 V100 H0 Z' fill='%231c1030'/%3E%3Cpath d='M0 72 Q40 46 80 60 T160 54' fill='none' stroke='%2314F195' stroke-width='1.6'/%3E%3Cg stroke='%23c471ff' stroke-width='2.2' fill='none'%3E%3Ccircle cx='66' cy='58' r='7'/%3E%3Ccircle cx='90' cy='56' r='7'/%3E%3Cpath d='M66 58 L78 48 L90 56 M78 48 L82 56'/%3E%3C/g%3E%3Ccircle cx='74' cy='40' r='3' fill='%23fff'/%3E%3C/svg%3E";
+  var BUILTIN=[{file:'bike.html',title:'KryzixsBike',desc:'Built-in • endless hill rider',thumb:BIKE_THUMB}];
+  function openLocalGame(file,title){
+    $('#gvt').textContent=title||'Game';
+    $('#gv').classList.add('on');
+    var v=$('#gvload'); if(v){ v.style.display='grid'; v.innerHTML='<div class="spin"></div><div style="font-size:13px">Loading…</div>'; }
+    var f=resetViewerFrame()||$('#gvframe');
+    f.onload=function(){ var vv=$('#gvload'); if(vv) vv.style.display='none'; };
+    f.src=file;
+  }
   function renderScratch(){
-    var grid=$('#ggrid'); if(!grid) return; var list=scratchList();
-    if(!list.length){ grid.innerHTML='<div class="gloading">No games yet. Paste a Scratch link or ID above to add one.</div>'; return; }
-    grid.innerHTML=list.map(function(g){
+    var grid=$('#ggrid'); if(!grid) return;
+    var bi=BUILTIN.map(function(g){
+      return '<div class="gcard" data-file="'+esc(g.file)+'" data-t="'+esc(g.title)+'">'+
+        '<img decoding="async" src="'+g.thumb+'"><div class="gt">'+esc(g.title)+'</div><div class="gd">'+esc(g.desc)+'</div></div>';
+    }).join('');
+    var list=scratchList();
+    var sc=list.map(function(g){
       return '<div class="gcard" data-id="'+esc(g.id)+'" data-t="'+esc(g.title||'')+'">'+
         '<img loading="lazy" decoding="async" src="https://uploads.scratch.mit.edu/get_image/project/'+esc(g.id)+'_480x360.png" onerror="this.style.opacity=0.2">'+
         '<div class="gt">'+esc(g.title||('Scratch #'+g.id))+'</div><div class="gd">Scratch project</div>'+
         '<span class="gdel" data-id="'+esc(g.id)+'" title="Remove">✕</span></div>';
     }).join('');
-    grid.querySelectorAll('.gcard').forEach(function(c){ c.onclick=function(e){ if(e.target&&e.target.classList.contains('gdel')){ e.stopPropagation(); removeScratch(c.dataset.id); return; } openScratch(c.dataset.id, c.dataset.t); }; });
+    grid.innerHTML=bi+sc;
+    grid.querySelectorAll('.gcard').forEach(function(c){ c.onclick=function(e){ if(e.target&&e.target.classList.contains('gdel')){ e.stopPropagation(); removeScratch(c.dataset.id); return; } if(c.dataset.file){ openLocalGame(c.dataset.file, c.dataset.t); return; } openScratch(c.dataset.id, c.dataset.t); }; });
   }
   function addScratch(raw){
     var id=extractScratchId(raw);

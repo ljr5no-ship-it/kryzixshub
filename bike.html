@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>KryzixsBike</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:#fff;user-select:none}
+  #c{display:block;width:100vw;height:100vh;touch-action:none}
+  .hud{position:fixed;top:14px;left:16px;right:16px;display:flex;justify-content:space-between;pointer-events:none;font-weight:800;font-variant-numeric:tabular-nums}
+  .hud .box{background:rgba(0,0,0,.35);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.10);padding:7px 13px;border-radius:12px;font-size:15px}
+  .hud .lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8b8b9a;font-weight:700}
+  .hud .val{font-size:20px;line-height:1.1}
+  .coinC{color:#14F195}
+  #ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;background:radial-gradient(ellipse at center,rgba(20,10,40,.55),rgba(0,0,0,.86));backdrop-filter:blur(3px);padding:24px}
+  #ov.hide{display:none}
+  #ov h1{font-size:clamp(34px,9vw,66px);font-weight:900;letter-spacing:-.03em;background:linear-gradient(100deg,#9945FF,#c471ff,#14F195);-webkit-background-clip:text;background-clip:text;color:transparent}
+  #ov p{color:#b6b6c6;font-size:15px;max-width:340px;line-height:1.5}
+  #ov .big{font-size:44px;font-weight:900;color:#fff}
+  #ov .sub{color:#8b8b9a;font-size:13px;letter-spacing:.04em}
+  .btn{margin-top:6px;pointer-events:auto;cursor:pointer;border:0;font:inherit;font-weight:800;font-size:16px;color:#08120c;padding:14px 30px;border-radius:999px;background:linear-gradient(100deg,#9945FF,#14F195);box-shadow:0 10px 34px -10px rgba(153,69,255,.7)}
+  .btn:active{transform:scale(.96)}
+  .hint{position:fixed;bottom:16px;left:0;right:0;text-align:center;color:#6b6b80;font-size:12.5px;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud">
+  <div class="box"><div class="lbl">Distance</div><div class="val" id="dist">0<span style="font-size:12px;color:#8b8b9a"> m</span></div></div>
+  <div class="box" style="text-align:right"><div class="lbl coinC">Coins</div><div class="val coinC" id="coins">0</div></div>
+</div>
+<div class="hint" id="hint">Hold anywhere / Space to accelerate • in the air it leans back for flips</div>
+<div id="ov">
+  <h1>KryzixsBike</h1>
+  <p>Ride the hills, hit the jumps, land clean. Hold to throttle — in the air you lean back, so time your landings or you wipe out.</p>
+  <button class="btn" id="start">Start riding</button>
+  <div class="sub" id="best"></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var cv=document.getElementById('c'), ctx=cv.getContext('2d');
+  var W=0,H=0,DPR=Math.min(window.devicePixelRatio||1,2);
+  function resize(){ W=cv.clientWidth; H=cv.clientHeight; cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+  window.addEventListener('resize',resize); resize();
+
+  // ---- procedural terrain -------------------------------------------------
+  var seed=Math.random()*1000;
+  function noise(x){ // smooth layered value noise
+    return Math.sin(x*0.6+seed)*0.5 + Math.sin(x*0.23+seed*2)*0.9 + Math.sin(x*0.11+seed*3)*1.6;
+  }
+  var GROUND_BASE=0.72;       // baseline as fraction of H
+  var AMP=120;                // hill amplitude (px)
+  function terrainY(wx){
+    var base=H*GROUND_BASE;
+    var roll=noise(wx*0.010)*AMP + Math.sin(wx*0.004+seed)*70;
+    // gentle difficulty ramp: bigger hills further out
+    var ramp=Math.min(1.7,1+wx/9000);
+    return base - roll*ramp;
+  }
+  function slopeAt(wx){ var d=6; return Math.atan2(terrainY(wx+d)-terrainY(wx-d), d*2); }
+
+  // ---- entities -----------------------------------------------------------
+  var bike, cam, coins, particles, state, dist, coinCount, best, speed;
+  var BIKE_SX=0.30;           // bike screen-x fraction
+  var R=15;                   // wheel radius
+  var GRAV=1500, MAXSPD=560, ACC=520, AIR_LEAN=3.4;
+  best=+(localStorage.getItem('kx_bike_best')||0)||0;
+
+  function reset(){
+    var wx=200;
+    bike={ wx:wx, y:terrainY(wx)-R, vy:0, ang:slopeAt(wx), av:0, ground:true };
+    cam=0; coins=[]; particles=[]; dist=0; coinCount=0; speed=180;
+    spawnAhead(0);
+    state='ready';
+  }
+  var coinCursor=400;
+  function spawnAhead(uptoWx){
+    while(coinCursor < bike.wx + W + 600){
+      // place a little arc of coins near a hill top / jump
+      if(Math.random()<0.72){
+        var n=2+((Math.random()*4)|0), gap=34;
+        for(var i=0;i<n;i++){ var cx=coinCursor+i*gap; coins.push({wx:cx, y:terrainY(cx)-70-Math.sin(i/n*Math.PI)*40, got:false}); }
+      }
+      coinCursor += 300+Math.random()*360;
+    }
+  }
+
+  // ---- input --------------------------------------------------------------
+  var hold=false;
+  function down(e){ if(e.cancelable)e.preventDefault(); hold=true; if(state==='ready'){ state='play'; document.getElementById('ov').classList.add('hide'); } if(state==='dead'){ restart(); } }
+  function up(){ hold=false; }
+  cv.addEventListener('mousedown',down); window.addEventListener('mouseup',up);
+  cv.addEventListener('touchstart',down,{passive:false}); window.addEventListener('touchend',up);
+  window.addEventListener('keydown',function(e){ if(e.code==='Space'||e.code==='ArrowUp'){ e.preventDefault(); down(e); } });
+  window.addEventListener('keyup',function(e){ if(e.code==='Space'||e.code==='ArrowUp'){ up(); } });
+  document.getElementById('start').addEventListener('click',function(){ state='play'; document.getElementById('ov').classList.add('hide'); });
+
+  var ov=document.getElementById('ov');
+  function showBest(){ document.getElementById('best').textContent = best?('Best  '+best+' m'):''; }
+  showBest();
+  function restart(){ var b=best; reset(); best=b; ov.classList.add('hide'); state='play'; }
+
+  function die(){
+    if(state==='dead') return;
+    state='dead';
+    if(dist>best){ best=dist; try{ localStorage.setItem('kx_bike_best',String(best)); }catch(e){} }
+    ov.classList.remove('hide');
+    ov.innerHTML='<h1>Wiped out</h1><div class="big">'+dist+' m</div><div class="sub">'+coinCount+' coins • best '+best+' m</div><button class="btn" id="rs">Ride again</button>';
+    document.getElementById('rs').addEventListener('click',restart);
+  }
+
+  // ---- update -------------------------------------------------------------
+  function update(dt){
+    if(state!=='play') return;
+    // horizontal speed
+    var slope=slopeAt(bike.wx);
+    var target = hold?MAXSPD:200;
+    // gravity assists downhill, fights uphill
+    speed += (Math.cos(slope)? -Math.sin(slope)*GRAV*0.28 : 0)*dt;
+    speed += (target-speed)* (hold?0.9:0.6)*dt;
+    if(speed<70) speed=70; if(speed>MAXSPD*1.25) speed=MAXSPD*1.25;
+    bike.wx += speed*dt;
+    dist = Math.floor((bike.wx-200)/16);
+
+    var gy=terrainY(bike.wx)-R;
+    if(bike.ground){
+      bike.y=gy; bike.vy=0;
+      var tgt=slopeAt(bike.wx);
+      bike.ang += (tgt-bike.ang)*Math.min(1,dt*12);
+      // leave ground if the terrain drops faster than we can follow (a jump)
+      var ahead=terrainY(bike.wx+18)-R;
+      if(ahead-bike.y > 8 && speed>300){ bike.ground=false; bike.vy=Math.sin(tgt)*speed*0.4 - 40; }
+      // dust
+      if(Math.random()<0.5) particles.push({x:BIKE_SX*W-18, y:H-(H-bike.y), sx:-speed*0.02-10, sy:-Math.random()*40, life:0.5, r:2+Math.random()*2});
+    } else {
+      bike.vy += GRAV*dt; bike.y += bike.vy*dt;
+      bike.av += (hold? -AIR_LEAN : AIR_LEAN*0.35)*dt;   // hold = lean back for flips
+      bike.ang += bike.av*dt;
+      if(bike.y>=gy){ // landing
+        var diff=Math.abs(normAng(bike.ang - slopeAt(bike.wx)));
+        if(diff>1.0){ crashFx(); die(); return; }
+        bike.y=gy; bike.ground=true; bike.vy=0; bike.av=0;
+        // reward big rotations
+        var flips=Math.round(bike.ang/(Math.PI*2));
+        if(Math.abs(flips)>=1){ coinCount+=5*Math.abs(flips); pop('+'+(5*Math.abs(flips))); }
+        bike.ang=slopeAt(bike.wx);
+      }
+    }
+    // coins
+    spawnAhead();
+    for(var i=0;i<coins.length;i++){ var co=coins[i]; if(co.got) continue;
+      var sx=(co.wx-bike.wx)*1 + BIKE_SX*W; var sy=co.y;
+      var bx=BIKE_SX*W, by=bike.y;
+      if(Math.abs(sx-bx)<26 && Math.abs(sy-by)<30){ co.got=true; coinCount++; pop('+1'); }
+    }
+    // cull
+    coins=coins.filter(function(co){ return co.wx>bike.wx-200; });
+    // particles
+    for(var p=particles.length-1;p>=0;p--){ var pa=particles[p]; pa.x+=pa.sx*dt; pa.y+=pa.sy*dt; pa.sy+=400*dt; pa.life-=dt; if(pa.life<=0) particles.splice(p,1); }
+
+    document.getElementById('dist').innerHTML=dist+'<span style="font-size:12px;color:#8b8b9a"> m</span>';
+    document.getElementById('coins').textContent=coinCount;
+  }
+  function normAng(a){ a=a%(Math.PI*2); if(a>Math.PI)a-=Math.PI*2; if(a<-Math.PI)a+=Math.PI*2; return a; }
+
+  var pops=[];
+  function pop(t){ pops.push({t:t,x:BIKE_SX*W,y:0,life:1}); }
+  function crashFx(){ for(var i=0;i<20;i++) particles.push({x:BIKE_SX*W,y:0,sx:(Math.random()-0.5)*300,sy:-Math.random()*260,life:0.8,r:2+Math.random()*3,c:'#f0436a'}); }
+
+  // ---- render -------------------------------------------------------------
+  function hill(colorTop,colorBot,par,off){
+    ctx.beginPath(); ctx.moveTo(0,H);
+    for(var sx=0;sx<=W;sx+=8){ var wx=bike.wx*par + sx/1 ; var y=terrainY(wx)+off; ctx.lineTo(sx,y); }
+    ctx.lineTo(W,H); ctx.closePath();
+    var g=ctx.createLinearGradient(0,H*0.3,0,H); g.addColorStop(0,colorTop); g.addColorStop(1,colorBot); ctx.fillStyle=g; ctx.fill();
+  }
+  function drawBike(){
+    var x=BIKE_SX*W, y=bike.y;
+    ctx.save(); ctx.translate(x,y); ctx.rotate(bike.ang);
+    // frame
+    ctx.strokeStyle='#c471ff'; ctx.lineWidth=4; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-16,0); ctx.lineTo(0,-14); ctx.lineTo(16,0); ctx.moveTo(0,-14); ctx.lineTo(4,0); ctx.stroke();
+    // rider (original simple figure)
+    ctx.strokeStyle='#14F195'; ctx.lineWidth=4;
+    ctx.beginPath(); ctx.moveTo(-2,-14); ctx.lineTo(-4,-26); ctx.moveTo(-4,-26); ctx.lineTo(10,-18); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(-5,-31,5,0,7); ctx.fill();
+    // wheels
+    ctx.strokeStyle='#fff'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(-16,0,R,0,7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(16,0,R,0,7); ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(-16,0,R-4,0,7); ctx.stroke(); ctx.beginPath(); ctx.arc(16,0,R-4,0,7); ctx.stroke();
+    ctx.restore();
+  }
+  function render(){
+    // sky
+    var sky=ctx.createLinearGradient(0,0,0,H); sky.addColorStop(0,'#08040f'); sky.addColorStop(1,'#000');
+    ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
+    // stars
+    ctx.fillStyle='rgba(255,255,255,.35)';
+    for(var i=0;i<40;i++){ var sx=((i*137.5+ -bike.wx*0.02)%W+W)%W; var sy=(i*53)%(H*0.5); ctx.fillRect(sx,sy,1.5,1.5); }
+    // parallax hills (far -> near) — shift terrain sampling by parallax factor
+    hillPar('#2a1150','#120826',0.25,40);
+    hillPar('#3d1a6b','#1a0b33',0.5,18);
+    // main ground
+    ctx.beginPath(); ctx.moveTo(0,H);
+    for(var sx2=0;sx2<=W;sx2+=6){ var wx=bike.wx - BIKE_SX*W + sx2; ctx.lineTo(sx2,terrainY(wx)); }
+    ctx.lineTo(W,H); ctx.closePath();
+    var gg=ctx.createLinearGradient(0,H*0.4,0,H); gg.addColorStop(0,'#1c1030'); gg.addColorStop(1,'#000'); ctx.fillStyle=gg; ctx.fill();
+    // ground edge glow
+    ctx.beginPath();
+    for(var sx3=0;sx3<=W;sx3+=6){ var wx3=bike.wx - BIKE_SX*W + sx3; var yy=terrainY(wx3); if(sx3===0)ctx.moveTo(sx3,yy);else ctx.lineTo(sx3,yy); }
+    ctx.strokeStyle='#14F195'; ctx.lineWidth=2.5; ctx.shadowColor='#14F195'; ctx.shadowBlur=12; ctx.stroke(); ctx.shadowBlur=0;
+    // coins
+    for(var c=0;c<coins.length;c++){ var co=coins[c]; if(co.got) continue; var cx=(co.wx-bike.wx)+BIKE_SX*W; if(cx<-30||cx>W+30) continue;
+      ctx.beginPath(); ctx.arc(cx,co.y,7,0,7); ctx.fillStyle='#14F195'; ctx.shadowColor='#14F195'; ctx.shadowBlur=10; ctx.fill(); ctx.shadowBlur=0;
+      ctx.fillStyle='#08120c'; ctx.font='bold 9px sans-serif'; ctx.textAlign='center'; ctx.fillText('$',cx,co.y+3);
+    }
+    // particles
+    for(var p=0;p<particles.length;p++){ var pa=particles[p]; ctx.globalAlpha=Math.max(0,pa.life); ctx.fillStyle=pa.c||'#8b6bbf'; ctx.beginPath(); ctx.arc(pa.x, (pa.y||bike.y)+(pa.c?0:0), pa.r,0,7); ctx.fill(); }
+    ctx.globalAlpha=1;
+    drawBike();
+    // pops
+    for(var q=pops.length-1;q>=0;q--){ var po=pops[q]; po.life-=0.02; po.y-=1.4; if(po.life<=0){ pops.splice(q,1); continue; } ctx.globalAlpha=po.life; ctx.fillStyle='#14F195'; ctx.font='800 18px sans-serif'; ctx.textAlign='center'; ctx.fillText(po.t, po.x+30, bike.y-40+po.y); }
+    ctx.globalAlpha=1;
+  }
+  function hillPar(top,bot,par,thick){
+    ctx.beginPath(); ctx.moveTo(0,H);
+    for(var sx=0;sx<=W;sx+=10){ var wx=(bike.wx*par) + sx; var y=(terrainY(wx)*0.5 + H*0.36) + thick; ctx.lineTo(sx,y); }
+    ctx.lineTo(W,H); ctx.closePath();
+    var g=ctx.createLinearGradient(0,H*0.3,0,H); g.addColorStop(0,top); g.addColorStop(1,bot); ctx.fillStyle=g; ctx.fill();
+  }
+
+  // ---- loop ---------------------------------------------------------------
+  var last=performance.now();
+  function frame(t){ var dt=Math.min(0.033,(t-last)/1000); last=t; update(dt); render(); requestAnimationFrame(frame); }
+  reset(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
